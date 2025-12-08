@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { MyRuntimeProvider } from "@/app/runtime-provider";
+import { applyGlobalProxy } from "@/lib/fetch-proxy";
+
+applyGlobalProxy();
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +31,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <MyRuntimeProvider>{children}</MyRuntimeProvider>
       </body>
     </html>
   );
