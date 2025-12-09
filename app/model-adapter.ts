@@ -13,7 +13,7 @@ export const MyModelAdapter: ChatModelAdapter = {
       role: m.role,
       parts: m.content.map((c) => ({
         type: "text",
-        text: c.text as string, // TODO
+        text: c.type === "text" ? c.text : "",
       })),
     }));
 
