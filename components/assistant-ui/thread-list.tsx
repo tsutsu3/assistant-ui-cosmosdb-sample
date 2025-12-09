@@ -1,14 +1,31 @@
-import type { FC } from "react";
+import { type FC, useState } from "react";
 import {
   ThreadListItemPrimitive,
   ThreadListPrimitive,
   useAssistantState,
 } from "@assistant-ui/react";
-import { ArchiveIcon, PlusIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  MoreHorizontalIcon,
+  PlusIcon,
+  TrashIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const ThreadList: FC = () => {
   return (
@@ -67,7 +84,7 @@ const ThreadListItem: FC = () => {
       <ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex-grow px-3 py-2 text-start">
         <ThreadListItemTitle />
       </ThreadListItemPrimitive.Trigger>
-      <ThreadListItemArchive />
+      <ThreadListItemMenu />
     </ThreadListItemPrimitive.Root>
   );
 };
@@ -80,16 +97,97 @@ const ThreadListItemTitle: FC = () => {
   );
 };
 
-const ThreadListItemArchive: FC = () => {
+const ThreadListItemMenu: FC = () => {
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const handleDeleteClick = () => {
+    setMenuOpen(false);
+    setDeleteDialogOpen(true);
+  };
+
   return (
-    <ThreadListItemPrimitive.Archive asChild>
-      <TooltipIconButton
-        className="aui-thread-list-item-archive mr-3 ml-auto size-4 p-0 text-foreground hover:text-primary"
-        variant="ghost"
-        tooltip="Archive thread"
-      >
-        <ArchiveIcon />
-      </TooltipIconButton>
-    </ThreadListItemPrimitive.Archive>
+    <>
+      <Popover open={isMenuOpen} onOpenChange={setMenuOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            aria-label="Open thread actions"
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="aui-thread-list-item-menu-trigger mr-2 ml-auto size-8 p-2 text-muted-foreground hover:text-foreground"
+          >
+            <MoreHorizontalIcon className="size-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          sideOffset={4}
+          className="aui-thread-list-item-menu w-44 p-1"
+        >
+          <ThreadListItemPrimitive.Archive
+            className="aui-thread-list-item-menu-archive flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            onClick={() => setMenuOpen(false)}
+          >
+            <ArchiveIcon className="size-4" />
+            Archive thread
+          </ThreadListItemPrimitive.Archive>
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            className="aui-thread-list-item-menu-delete flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <TrashIcon className="size-4" />
+            Delete thread
+          </button>
+        </PopoverContent>
+      </Popover>
+      <ThreadListItemDeleteDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
+    </>
+  );
+};
+
+type ThreadListItemDeleteDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+const ThreadListItemDeleteDialog: FC<ThreadListItemDeleteDialogProps> = ({
+  open,
+  onOpenChange,
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete this thread?</DialogTitle>
+          <DialogDescription>
+            This action permanently removes the conversation and cannot be
+            undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="aui-thread-list-item-delete-dialog-footer">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <ThreadListItemPrimitive.Delete
+            asChild
+            onClick={() => onOpenChange(false)}
+          >
+            <Button type="button" variant="destructive">
+              <TrashIcon className="size-4" />
+              Delete
+            </Button>
+          </ThreadListItemPrimitive.Delete>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
