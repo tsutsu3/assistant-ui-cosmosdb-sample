@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { MyRuntimeProvider } from "@/app/runtime-provider";
 import { applyGlobalProxy } from "@/lib/fetch-proxy";
+import { DevToolsModal } from "@assistant-ui/react-devtools";
 
 applyGlobalProxy();
 
@@ -31,7 +32,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MyRuntimeProvider>{children}</MyRuntimeProvider>
+        <MyRuntimeProvider>
+          <DevToolsModal />
+          {children}
+        </MyRuntimeProvider>
       </body>
     </html>
   );

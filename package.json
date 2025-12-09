@@ -21,6 +21,7 @@
     "@ai-sdk/openai": "^2.0.77",
     "@assistant-ui/react": "^0.11.47",
     "@assistant-ui/react-ai-sdk": "^1.1.16",
+    "@assistant-ui/react-devtools": "^0.1.9",
     "@assistant-ui/react-markdown": "^0.11.6",
     "@azure/cosmos": "^4.9.0",
     "@radix-ui/react-avatar": "^1.1.11",
