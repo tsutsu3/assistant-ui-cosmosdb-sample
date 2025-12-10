@@ -9,7 +9,7 @@ npx assistant-ui@latest create
 It extends the starter by adding:
 
 - Chat threads/messages are persisted to Azure Cosmos DB (`threads`, `messages` containers).
-- Azure OpenAI (gpt-4o) is used for chat responses and auto-title generation.
+- Azure OpenAI is used for chat responses and auto-title generation.
 
 <div style="background-color: #eee; display: inline-block; padding: 8px;">
    <img src="assets/home.png" alt="home" />
@@ -19,6 +19,8 @@ It extends the starter by adding:
 
 - [ ] Use UUIDv4 for thread IDs when persisting
 - [ ] Use UUIDv4 for message IDs when persisting
+- [ ] Fix thread deletion errors (deleting a thread currently triggers an exception).
+- [ ] Store uploaded images in Azure Blob Storage instead of Base64 strings in Cosmos DB (to reduce payload size and database cost).
 
 > [!CAUTION]
 > Thread IDs are currently stored in a format like `__LOCALID_3yHFd1l`, and message IDs are stored in a format like `f0GjiXG`.
@@ -43,7 +45,7 @@ It extends the starter by adding:
    - `HTTPS_PROXY`: URL of the proxy server for outbound HTTPS requests. (option)
    - `AZURE_RESOURCE_NAME`: Azure OpenAI resource name (used to build the endpoint).
    - `AZURE_API_KEY`: Azure OpenAI API key.
-   - `AZURE_OPENAI_DEPLOYMENT_NAME`: Deployment name for the `gpt-4o` model.
+   - `AZURE_OPENAI_DEPLOYMENT_NAME`: Deployment name for the model.
    - `AZURE_COSMOS_DB_ENDPOINT`: Cosmos DB endpoint URL.
    - `AZURE_COSMOS_DB_KEY`: Cosmos DB key.
    - `AZURE_COSMOS_DB_NAME`: Cosmos DB database name (defaults to `assistant-ui-db`).
@@ -53,5 +55,3 @@ It extends the starter by adding:
 ## Notes
 
 - Threads/messages are stored in Cosmos DB; ensure the containers exist before running.
-- All LLM calls route through the Azure OpenAI `gpt-4o` deployment you configure.
-
