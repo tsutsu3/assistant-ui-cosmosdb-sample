@@ -13,6 +13,7 @@ export type MessageDoc = {
   role: string;
   status: string | null;
   content: string;
+  attachments: any;
   metadata: string | null;
   runConfig: string | null;
   createdAt: string;

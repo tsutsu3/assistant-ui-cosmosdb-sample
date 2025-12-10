@@ -50,7 +50,9 @@ const useAttachmentSrc = () => {
   const { file, src } = useAssistantState(
     useShallow(({ attachment }): { file?: File; src?: string } => {
       if (attachment.type !== "image") return {};
-      if (attachment.file) return { file: attachment.file };
+      // Proceed only when the file object exists and is not empty.
+      if (attachment.file && attachment.file.size > 0)
+        return { file: attachment.file };
       const src = attachment.content?.filter((c) => c.type === "image")[0]
         ?.image;
       if (!src) return {};

@@ -8,6 +8,9 @@ import {
   RuntimeAdapterProvider,
   AssistantRuntimeProvider,
   type ThreadHistoryAdapter,
+  CompositeAttachmentAdapter,
+  SimpleImageAttachmentAdapter,
+  SimpleTextAttachmentAdapter,
 } from "@assistant-ui/react";
 import type { MessageRecord } from "@/lib/repositories/chat-repository";
 import { MyModelAdapter } from "./model-adapter";
@@ -18,7 +21,14 @@ export function MyRuntimeProvider({
 }: Readonly<{ children: React.ReactNode }>) {
   const runtime = useRemoteThreadListRuntime({
     runtimeHook: () => {
-      return useLocalRuntime(MyModelAdapter);
+      return useLocalRuntime(MyModelAdapter, {
+        adapters: {
+          attachments: new CompositeAttachmentAdapter([
+            new SimpleImageAttachmentAdapter(),
+            new SimpleTextAttachmentAdapter(),
+          ]),
+        },
+      });
     },
 
     adapter: {
@@ -27,6 +37,7 @@ export function MyRuntimeProvider({
       // The Provider component adds thread-specific adapters
       unstable_Provider: ({ children }) => {
         // This runs in the context of each thread
+        // TODO: Prevent errors when deleting the main thread
         const threadListItem = useAssistantState(
           ({ threadListItem }) => threadListItem,
         );

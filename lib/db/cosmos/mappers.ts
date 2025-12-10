@@ -39,6 +39,7 @@ export function toMessageRecord(
     role: doc.role as MessageRecord["role"],
     status: doc.status,
     content: doc.content,
+    attachments: doc.attachments,
     metadata: doc.metadata,
     runConfig: doc.runConfig,
     createdAt: new Date(doc.createdAt),
