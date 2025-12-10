@@ -37,6 +37,7 @@ export function MyRuntimeProvider({
       // The Provider component adds thread-specific adapters
       unstable_Provider: ({ children }) => {
         // This runs in the context of each thread
+        // TODO: Prevent errors when deleting the main thread
         const threadListItem = useAssistantState(
           ({ threadListItem }) => threadListItem,
         );
