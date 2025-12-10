@@ -29,6 +29,7 @@ export interface MessageRecord {
   role: MessageRole;
   status: any;
   content: any;
+  attachments: any;
   metadata: any;
   runConfig: any;
   createdAt: Date;
