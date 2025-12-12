@@ -129,9 +129,7 @@ export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
       blobHTTPHeaders: {
         blobContentType: params.contentType,
       },
-      metadata: {
-        filename: params.filename,
-      },
+      metadata: this.buildMetadata(params.filename),
     });
 
     logger.debug("Uploaded attachment to Azure blob storage", {
@@ -202,5 +200,17 @@ export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
     }
 
     return Buffer.from(data);
+  }
+
+  private buildMetadata(filename: string) {
+    const sanitized = this.sanitizeMetadataValue(filename);
+    if (!sanitized) return undefined;
+    return { filename: sanitized };
+  }
+
+  private sanitizeMetadataValue(value: string) {
+    if (!value) return "";
+    // Azure metadata headers must be ASCII without control chars.
+    return value.replace(/[^\x20-\x7E]/g, "").slice(0, 256);
   }
 }

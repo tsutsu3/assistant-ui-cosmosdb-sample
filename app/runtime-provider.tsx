@@ -8,11 +8,9 @@ import {
   RuntimeAdapterProvider,
   AssistantRuntimeProvider,
   type ThreadHistoryAdapter,
-  CompositeAttachmentAdapter,
-  SimpleImageAttachmentAdapter,
-  SimpleTextAttachmentAdapter,
 } from "@assistant-ui/react";
 import type { MessageRecord } from "@/lib/repositories/chat-repository";
+import { AzureBlobAttachmentAdapter } from "@/lib/assistant-ui/azure-blob-attachment-adapter";
 import { MyModelAdapter } from "./model-adapter";
 import { MyDatabaseAdapter } from "./database-adapter";
 
@@ -23,10 +21,7 @@ export function MyRuntimeProvider({
     runtimeHook: () => {
       return useLocalRuntime(MyModelAdapter, {
         adapters: {
-          attachments: new CompositeAttachmentAdapter([
-            new SimpleImageAttachmentAdapter(),
-            new SimpleTextAttachmentAdapter(),
-          ]),
+          attachments: new AzureBlobAttachmentAdapter(),
         },
       });
     },
