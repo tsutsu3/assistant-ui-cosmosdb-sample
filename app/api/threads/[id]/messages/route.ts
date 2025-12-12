@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { MessageRecord } from "@/lib/repositories/chat-repository";
 import { logger } from "@/lib/logger";
 import { CosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
+import { AzureBlobAttachmentRepository } from "@/lib/storage/azure-blob-repository";
+import {
+  isAzureBlobAttachment,
+  type StoredAttachment,
+} from "@/lib/types/attachments";
+
+const attachmentRepository = new AzureBlobAttachmentRepository();
 
 export async function GET(
   req: NextRequest,
@@ -12,7 +19,8 @@ export async function GET(
 
   try {
     const messages = await repository.getMessages(id);
-    return NextResponse.json({ messages });
+    const enrichedMessages = await refreshAttachmentUrls(messages);
+    return NextResponse.json({ messages: enrichedMessages });
   } catch (e) {
     logger.error("GET /threads/[id]/messages error:", e);
     return NextResponse.json(
@@ -51,4 +59,56 @@ export async function POST(
       { status: 500 },
     );
   }
+}
+
+async function refreshAttachmentUrls(messages: MessageRecord[]) {
+  return Promise.all(
+    messages.map(async (message) => {
+      if (!Array.isArray(message.attachments)) {
+        return message;
+      }
+
+      const updatedAttachments = await Promise.all(
+        (message.attachments as StoredAttachment[]).map(async (attachment) => {
+          if (!isAzureBlobAttachment(attachment)) {
+            return attachment;
+          }
+
+          try {
+            const downloadUrl =
+              await attachmentRepository.getTemporaryDownloadUrl(
+                attachment.storage.objectId,
+              );
+
+            const updatedContent =
+              attachment.content?.map((part) => {
+                if (part.type === "image") {
+                  return { ...part, image: downloadUrl };
+                }
+                if (part.type === "file") {
+                  return { ...part, data: downloadUrl };
+                }
+                return part;
+              }) ?? attachment.content;
+
+            return {
+              ...attachment,
+              content: updatedContent,
+            };
+          } catch (error) {
+            logger.error("Failed to refresh attachment URL", {
+              attachmentId: attachment.id,
+              error,
+            });
+            return attachment;
+          }
+        }),
+      );
+
+      return {
+        ...message,
+        attachments: updatedAttachments,
+      };
+    }),
+  );
 }
