@@ -10,7 +10,7 @@ import {
   type ThreadHistoryAdapter,
 } from "@assistant-ui/react";
 import type { MessageRecord } from "@/lib/repositories/chat-repository";
-import { AzureBlobAttachmentAdapter } from "@/lib/assistant-ui/azure-blob-attachment-adapter";
+import { AzureBlobAttachmentAdapter } from "@/lib/adapters/azure-blob-attachment-adapter";
 import { MyModelAdapter } from "./model-adapter";
 import { MyDatabaseAdapter } from "./database-adapter";
 
