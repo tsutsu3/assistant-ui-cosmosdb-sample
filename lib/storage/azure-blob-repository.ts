@@ -80,8 +80,8 @@ export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
     try {
       const parsed = new URL(proxyUrl);
       return {
-        host: parsed.hostname,
-        port: Number(parsed.port || (parsed.protocol === "https:" ? 443 : 80)),
+        host: parsed.protocol + "//" + parsed.hostname,
+        port: Number(parsed.port),
         username: parsed.username || undefined,
         password: parsed.password || undefined,
       };
