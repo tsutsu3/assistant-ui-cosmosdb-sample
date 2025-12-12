@@ -46,10 +46,10 @@ export async function POST(
     attachments: message.attachments?.map((attachment: StoredAttachment) => {
       const updatedContent = attachment.content?.map((part: any) => {
         if (part.type === "image" && part.image) {
-          return { ...part, image: stripSasToken(part.image) };
+          return { ...part, image: replaceB64ImageUrl(part.image) };
         }
         if (part.type === "file" && part.data) {
-          return { ...part, data: stripSasToken(part.data) };
+          return { ...part, data: replaceB64ImageUrl(part.data) };
         }
         return part;
       });
@@ -82,14 +82,8 @@ export async function POST(
   }
 }
 
-function stripSasToken(url: string): string {
-  try {
-    const parsedUrl = new URL(url);
-    parsedUrl.search = "";
-    return parsedUrl.toString();
-  } catch {
-    return url;
-  }
+function replaceB64ImageUrl(url: string): string {
+  return "[data removed]";
 }
 
 async function refreshAttachmentUrls(messages: MessageRecord[]) {

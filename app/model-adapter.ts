@@ -8,55 +8,38 @@ import {
   type UITools,
 } from "ai";
 
+const signedUrlCache = new Map<string, Promise<string>>();
+
 export const MyModelAdapter: ChatModelAdapter = {
   async *run({ messages, abortSignal, context }) {
     const transport = new AssistantChatTransport({
       api: "/api/chat",
     });
 
-    const inputParts = messages.flatMap((message) => [
-      ...message.content.filter((c) => c.type !== "file"),
-      ...(message.attachments?.flatMap((a) =>
-        a.content.map((c) => ({
-          ...c,
-          filename: a.name,
-        })),
-      ) ?? []),
-    ]);
+    const uiMessages: UIMessage[] = await Promise.all(
+      messages.map(async (message) => {
+        const inlineParts = message.content.filter((c) => c.type !== "file");
+        const attachmentParts =
+          message.attachments?.flatMap((attachment) =>
+            attachment.content.map((part) =>
+              resolveAttachmentPart(attachment, part),
+            ),
+          ) ?? [];
 
-    const parts = inputParts.map(
-      (part): UIMessagePart<UIDataTypes, UITools> => {
-        switch (part.type) {
-          case "text":
-            return {
-              type: "text",
-              text: part.text,
-            };
-          case "image":
-            return {
-              type: "file",
-              url: part.image,
-              ...(part.filename && { filename: part.filename }),
-              mediaType: "image/png",
-            };
-          case "file":
-            return {
-              type: "file",
-              url: part.data,
-              mediaType: part.mimeType,
-              ...(part.filename && { filename: part.filename }),
-            };
-          default:
-            throw new Error(`Unsupported part type: ${part.type}`);
-        }
-      },
+        const resolvedParts = await Promise.all([
+          ...inlineParts.map((part) => Promise.resolve(part)),
+          ...attachmentParts,
+        ]);
+
+        const parts = resolvedParts.map(toUiPart);
+
+        return {
+          id: message.id,
+          role: message.role,
+          parts,
+        };
+      }),
     );
-
-    const uiMessages: UIMessage[] = messages.map((m) => ({
-      id: m.id,
-      role: m.role,
-      parts: parts,
-    }));
 
     const chunkStream = await transport.sendMessages({
       trigger: "submit-message",
@@ -123,3 +106,107 @@ export const MyModelAdapter: ChatModelAdapter = {
     }
   },
 };
+
+function toUiPart(part: any): UIMessagePart<UIDataTypes, UITools> {
+  switch (part.type) {
+    case "text":
+      return {
+        type: "text",
+        text: part.text,
+      };
+    case "image":
+      return {
+        type: "file",
+        url: part.image,
+        ...(part.filename && { filename: part.filename }),
+        mediaType: "image/png",
+      };
+    case "file":
+      return {
+        type: "file",
+        url: part.data,
+        mediaType: part.mimeType,
+        ...(part.filename && { filename: part.filename }),
+      };
+    default:
+      throw new Error(`Unsupported part type: ${part.type}`);
+  }
+}
+
+async function resolveAttachmentPart(
+  attachment: any,
+  part: any,
+): Promise<any> {
+  if (part.type === "image") {
+    const url = await resolveAttachmentUrl(attachment, part.image);
+    return {
+      ...part,
+      image: url,
+      filename: part.filename ?? attachment.name,
+    };
+  }
+
+  if (part.type === "file") {
+    const url = await resolveAttachmentUrl(attachment, part.data);
+    return {
+      ...part,
+      data: url,
+      filename: part.filename ?? attachment.name,
+    };
+  }
+
+  return part;
+}
+
+async function resolveAttachmentUrl(
+  attachment: any,
+  fallback: string,
+): Promise<string> {
+  const storage = attachment?.storage;
+  if (
+    storage?.provider === "azure-blob" &&
+    typeof storage.objectId === "string" &&
+    storage.objectId
+  ) {
+    try {
+      return await getSignedUrl(storage.objectId);
+    } catch (error) {
+      console.warn("Failed to resolve attachment URL, fallback to inline", {
+        attachmentId: attachment?.id,
+        error,
+      });
+    }
+  }
+
+  return fallback;
+}
+
+function getSignedUrl(objectId: string): Promise<string> {
+  if (!signedUrlCache.has(objectId)) {
+    const promise = fetch("/api/attachments/download-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ objectId }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(
+            `Failed to sign attachment (status ${res.status})`,
+          );
+        }
+        const payload = await res.json();
+        if (typeof payload.url !== "string") {
+          throw new Error("Unexpected download-url response");
+        }
+        return payload.url;
+      })
+      .catch((error) => {
+        signedUrlCache.delete(objectId);
+        throw error;
+      });
+
+    signedUrlCache.set(objectId, promise);
+  }
+
+  return signedUrlCache.get(objectId)!;
+}

@@ -27,11 +27,8 @@ export async function POST(req: NextRequest) {
       size: file.size,
     });
 
-    const downloadUrl = await repository.getTemporaryDownloadUrl(uploaded.id);
-
     return NextResponse.json({
       id: uploaded.id,
-      downloadUrl,
       contentType: uploaded.contentType,
       size: uploaded.size,
     });

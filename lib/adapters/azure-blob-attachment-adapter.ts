@@ -10,7 +10,6 @@ import type { AttachmentStorageMetadata } from "@/lib/types/attachments";
 
 type UploadResponse = {
   id: string;
-  downloadUrl: string;
   contentType?: string;
   size?: number;
 };
@@ -73,10 +72,7 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
     attachment: PendingAttachment,
   ): Promise<CompleteAttachment & AttachmentStorageMetadata> {
     const upload = await this.ensureUpload(attachment);
-    const content = await this.buildContentParts(
-      attachment,
-      upload.downloadUrl,
-    );
+    const content = await this.buildContentParts(attachment);
 
     const completeAttachment: CompleteAttachment & AttachmentStorageMetadata = {
       id: attachment.id,
@@ -125,17 +121,12 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
     }
 
     const payload = (await response.json()) as UploadResponse;
-    if (
-      !payload ||
-      typeof payload.id !== "string" ||
-      typeof payload.downloadUrl !== "string"
-    ) {
+    if (!payload || typeof payload.id !== "string") {
       throw new Error("Unexpected attachment upload response");
     }
 
     return {
       id: payload.id,
-      downloadUrl: payload.downloadUrl,
       contentType:
         payload.contentType || file.type || "application/octet-stream",
       size: payload.size ?? file.size,
@@ -144,14 +135,12 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
 
   private async buildContentParts(
     attachment: PendingAttachment,
-    downloadUrl: string,
   ): Promise<CompleteAttachment["content"]> {
     if (attachment.type === "image") {
       return [
         {
           type: "image",
-          image: downloadUrl,
-          // image: await this.getFileDataURL(attachment.file),
+          image: await this.getFileDataURL(attachment.file),
           filename: attachment.name,
         },
       ];
@@ -160,8 +149,7 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
     return [
       {
         type: "file",
-        data: downloadUrl,
-        // data: await this.getFileDataURL(attachment.file),
+        data: await this.getFileDataURL(attachment.file),
         mimeType: attachment.contentType,
         filename: attachment.name,
       },
