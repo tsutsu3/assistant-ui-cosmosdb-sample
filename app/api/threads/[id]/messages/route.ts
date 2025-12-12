@@ -41,12 +41,33 @@ export async function POST(
   const parentId = body.parentId;
   const runConfig = body.runConfig;
 
-  const record: MessageRecord = {
+  const stripedMessage = {
     ...message,
+    attachments: message.attachments?.map((attachment: StoredAttachment) => {
+      const updatedContent = attachment.content?.map((part: any) => {
+        if (part.type === "image" && part.image) {
+          return { ...part, image: stripSasToken(part.image) };
+        }
+        if (part.type === "file" && part.data) {
+          return { ...part, data: stripSasToken(part.data) };
+        }
+        return part;
+      });
+      return {
+        ...attachment,
+        content: updatedContent,
+      };
+    }),
+  };
+
+  const record: MessageRecord = {
+    ...stripedMessage,
     threadId: id,
     parentId: parentId || null,
     runConfig: runConfig || null,
-    createdAt: message.createdAt ? new Date(message.createdAt) : new Date(),
+    createdAt: stripedMessage.createdAt
+      ? new Date(stripedMessage.createdAt)
+      : new Date(),
   };
 
   try {
@@ -58,6 +79,16 @@ export async function POST(
       { error: "Internal Server Error" },
       { status: 500 },
     );
+  }
+}
+
+function stripSasToken(url: string): string {
+  try {
+    const parsedUrl = new URL(url);
+    parsedUrl.search = "";
+    return parsedUrl.toString();
+  } catch {
+    return url;
   }
 }
 

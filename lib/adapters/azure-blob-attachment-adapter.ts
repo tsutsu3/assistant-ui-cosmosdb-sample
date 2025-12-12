@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import type {
   Attachment,
@@ -73,7 +73,10 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
     attachment: PendingAttachment,
   ): Promise<CompleteAttachment & AttachmentStorageMetadata> {
     const upload = await this.ensureUpload(attachment);
-    const content = this.buildContentParts(attachment, upload.downloadUrl);
+    const content = await this.buildContentParts(
+      attachment,
+      upload.downloadUrl,
+    );
 
     const completeAttachment: CompleteAttachment & AttachmentStorageMetadata = {
       id: attachment.id,
@@ -139,15 +142,16 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
     };
   }
 
-  private buildContentParts(
+  private async buildContentParts(
     attachment: PendingAttachment,
     downloadUrl: string,
-  ): CompleteAttachment["content"] {
+  ): Promise<CompleteAttachment["content"]> {
     if (attachment.type === "image") {
       return [
         {
           type: "image",
           image: downloadUrl,
+          // image: await this.getFileDataURL(attachment.file),
           filename: attachment.name,
         },
       ];
@@ -157,6 +161,7 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
       {
         type: "file",
         data: downloadUrl,
+        // data: await this.getFileDataURL(attachment.file),
         mimeType: attachment.contentType,
         filename: attachment.name,
       },
@@ -164,7 +169,10 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
   }
 
   private generateId() {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    )
       return crypto.randomUUID();
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   }
@@ -176,5 +184,16 @@ export class AzureBlobAttachmentAdapter implements AttachmentAdapter {
       return "document";
     }
     return "file";
+  }
+
+  private getFileDataURL(file: File): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+
+      reader.readAsDataURL(file);
+    });
   }
 }
