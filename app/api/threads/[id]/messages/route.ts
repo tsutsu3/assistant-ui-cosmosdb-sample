@@ -17,6 +17,7 @@ export async function GET(
 
   try {
     const messages = await repository.getMessages(id);
+    // Set temporary URLs for attachments
     const enrichedMessages = await refreshAttachmentUrls(messages);
     return NextResponse.json({ messages: enrichedMessages });
   } catch (e) {
@@ -42,6 +43,7 @@ export async function POST(
   const stripedMessage = {
     ...message,
     attachments: message.attachments?.map((attachment: StoredAttachment) => {
+      // Remove base64 image data from attachments before storing
       const updatedContent = attachment.content?.map((part: any) => {
         if (part.type === "image" && part.image) {
           return { ...part, image: replaceB64ImageUrl(part.image) };
