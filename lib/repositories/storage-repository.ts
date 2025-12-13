@@ -49,4 +49,9 @@ export interface ObjectStorageRepository {
     objectId: string,
     options?: { expiresInSeconds?: number },
   ): Promise<string>;
+
+  /**
+   * Delete an object by its provider-specific identifier.
+   */
+  deleteFile(objectId: string): Promise<void>;
 }

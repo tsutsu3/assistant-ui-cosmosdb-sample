@@ -1,12 +1,9 @@
 import {
   BlobSASPermissions,
-  BlobServiceClient,
   ContainerClient,
   StorageSharedKeyCredential,
   generateBlobSASQueryParameters,
-  newPipeline,
 } from "@azure/storage-blob";
-import type { ProxySettings } from "@azure/core-rest-pipeline";
 import { randomUUID } from "node:crypto";
 import { extname } from "node:path";
 import { logger } from "@/lib/logger";
@@ -15,18 +12,8 @@ import {
   UploadFileParams,
   UploadedFile,
 } from "@/lib/repositories/storage-repository";
-
-type AzureBlobRepositoryOptions = {
-  containerName?: string;
-  /**
-   * Prefix to group blobs logically (e.g. "attachments/2025/01").
-   */
-  pathPrefix?: string;
-  /**
-   * Default expiration (seconds) for temporary download URLs.
-   */
-  urlExpirationSeconds?: number;
-};
+import { getAzureBlobContainerClient, getAzureBlobCredential } from "./client";
+import type { AzureBlobRepositoryOptions } from "./types";
 
 export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
   private readonly containerClient: ContainerClient;
@@ -35,30 +22,13 @@ export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
   private containerReady?: Promise<void>;
 
   constructor(options: AzureBlobRepositoryOptions = {}) {
-    const accountName = process.env.AZURE_STORAGE_ACCOUNT;
-    const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-    if (!accountName || !accountKey) {
-      throw new Error(
-        "AZURE_STORAGE_ACCOUNT and AZURE_STORAGE_ACCOUNT_KEY must be set",
-      );
-    }
-
-    this.credential = new StorageSharedKeyCredential(accountName, accountKey);
-    const pipeline = newPipeline(this.credential, {
-      proxyOptions: this.getProxySettings(),
-    });
-
-    const endpoint =
-      process.env.AZURE_STORAGE_BLOB_ENDPOINT ||
-      `https://${accountName}.blob.core.windows.net`;
-
-    const blobServiceClient = new BlobServiceClient(endpoint, pipeline);
     const containerName =
       options.containerName ||
       process.env.AZURE_STORAGE_CONTAINER ||
       "attachments";
 
-    this.containerClient = blobServiceClient.getContainerClient(containerName);
+    this.credential = getAzureBlobCredential();
+    this.containerClient = getAzureBlobContainerClient(containerName);
     this.defaultUrlExpiration =
       options.urlExpirationSeconds ||
       Number(
@@ -72,27 +42,6 @@ export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
   }
 
   private readonly pathPrefix: string;
-
-  private getProxySettings(): ProxySettings | undefined {
-    const proxyUrl = process.env.HTTPS_PROXY;
-    if (!proxyUrl) return undefined;
-
-    try {
-      const parsed = new URL(proxyUrl);
-      return {
-        host: parsed.protocol + "//" + parsed.hostname,
-        port: Number(parsed.port),
-        username: parsed.username || undefined,
-        password: parsed.password || undefined,
-      };
-    } catch (error) {
-      logger.warn("Failed to parse HTTPS_PROXY - ignoring proxy settings", {
-        proxyUrl,
-        error,
-      });
-      return undefined;
-    }
-  }
 
   private async ensureContainerExists() {
     if (!this.containerReady) {
@@ -171,6 +120,23 @@ export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
     const blockBlobClient = this.containerClient.getBlockBlobClient(objectId);
 
     return `${blockBlobClient.url}?${sasToken}`;
+  }
+
+  async deleteFile(objectId: string): Promise<void> {
+    await this.ensureContainerExists();
+    const client = this.containerClient.getBlockBlobClient(objectId);
+
+    try {
+      const response = await client.deleteIfExists();
+      if (response.succeeded) {
+        logger.debug("Deleted blob object", { objectId });
+      } else {
+        logger.warn("Blob delete returned not succeeded", { objectId });
+      }
+    } catch (error) {
+      logger.error("Failed to delete blob object", { objectId, error });
+      throw error;
+    }
   }
 
   private buildBlobName(filename: string) {
