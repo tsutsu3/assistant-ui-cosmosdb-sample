@@ -309,3 +309,12 @@ export class CosmosChatRepository implements ChatRepository {
     }
   }
 }
+
+let sharedCosmosChatRepository: CosmosChatRepository | null = null;
+
+export function getCosmosChatRepository(): CosmosChatRepository {
+  if (!sharedCosmosChatRepository) {
+    sharedCosmosChatRepository = new CosmosChatRepository();
+  }
+  return sharedCosmosChatRepository;
+}

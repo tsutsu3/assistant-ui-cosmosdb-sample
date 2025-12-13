@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { CosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
+import { getCosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
 
 export async function GET(req: NextRequest) {
   try {
-    const repository = new CosmosChatRepository();
+    const repository = getCosmosChatRepository();
     const response = await repository.listThreads();
     return NextResponse.json(response.threads);
   } catch (e) {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { id } = await req.json();
-    const repository = new CosmosChatRepository();
+    const repository = getCosmosChatRepository();
     const thread = await repository.createThread(id);
     return NextResponse.json(thread, { status: 201 });
   } catch (e) {
