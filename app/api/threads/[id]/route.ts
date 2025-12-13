@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { CosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
-import { AzureBlobAttachmentRepository } from "@/lib/storage/azure-blob-repository";
+import { getCosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
+import { getAzureBlobAttachmentRepository } from "@/lib/storage/azure-blob-repository";
 import { isAzureBlobAttachment } from "@/lib/types/attachments";
-
-const attachmentRepository = new AzureBlobAttachmentRepository();
-const chatRepository = new CosmosChatRepository();
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const chatRepository = getCosmosChatRepository();
     const { id } = await params;
     const { title, archived } = await req.json();
 
@@ -50,6 +48,8 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const attachmentRepository = getAzureBlobAttachmentRepository();
+  const chatRepository = getCosmosChatRepository();
   const { id } = await params;
 
   try {

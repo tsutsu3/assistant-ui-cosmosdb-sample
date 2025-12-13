@@ -180,3 +180,14 @@ export class AzureBlobAttachmentRepository implements ObjectStorageRepository {
     return value.replace(/[^\x20-\x7E]/g, "").slice(0, 256);
   }
 }
+
+let sharedAzureBlobAttachmentRepository:
+  | AzureBlobAttachmentRepository
+  | null = null;
+
+export function getAzureBlobAttachmentRepository(): AzureBlobAttachmentRepository {
+  if (!sharedAzureBlobAttachmentRepository) {
+    sharedAzureBlobAttachmentRepository = new AzureBlobAttachmentRepository();
+  }
+  return sharedAzureBlobAttachmentRepository;
+}

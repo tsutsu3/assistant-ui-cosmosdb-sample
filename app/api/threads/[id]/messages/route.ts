@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MessageRecord } from "@/lib/repositories/chat-repository";
 import { logger } from "@/lib/logger";
-import { CosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
-import { AzureBlobAttachmentRepository } from "@/lib/storage/azure-blob-repository";
+import { getCosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
+import { getAzureBlobAttachmentRepository } from "@/lib/storage/azure-blob-repository";
 import {
   isAzureBlobAttachment,
   type StoredAttachment,
 } from "@/lib/types/attachments";
 
-const attachmentRepository = new AzureBlobAttachmentRepository();
-
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const repository = getCosmosChatRepository();
   const { id } = await params;
-  const repository = new CosmosChatRepository();
 
   try {
     const messages = await repository.getMessages(id);
@@ -34,8 +32,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const repository = getCosmosChatRepository();
   const { id } = await params;
-  const repository = new CosmosChatRepository();
   const body = await req.json();
   const message = body.message;
   const parentId = body.parentId;
@@ -87,6 +85,8 @@ function replaceB64ImageUrl(url: string): string {
 }
 
 async function refreshAttachmentUrls(messages: MessageRecord[]) {
+  const attachmentRepository = getAzureBlobAttachmentRepository();
+
   return Promise.all(
     messages.map(async (message) => {
       if (!Array.isArray(message.attachments)) {

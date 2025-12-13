@@ -2,14 +2,14 @@ import { NextResponse, NextRequest } from "next/server";
 import { azure } from "@ai-sdk/azure";
 import { generateText } from "ai";
 import { logger } from "@/lib/logger";
-import { CosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
+import { getCosmosChatRepository } from "@/lib/db/cosmos/cosmos-chat-repository";
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const repository = getCosmosChatRepository();
   const { id } = await params;
-  const repository = new CosmosChatRepository();
   const body = await req.json();
   const messages: { content: any }[] = body.messages ?? [];
 
