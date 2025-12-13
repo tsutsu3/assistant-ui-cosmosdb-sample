@@ -20,7 +20,6 @@ It extends the starter by adding:
 - [ ] Use UUIDv4 for thread IDs when persisting
 - [ ] Use UUIDv4 for message IDs when persisting
 - [ ] Fix thread deletion errors (deleting a thread currently triggers an exception).
-- [ ] Store uploaded images in Azure Blob Storage instead of Base64 strings in Cosmos DB (to reduce payload size and database cost).
 
 > [!CAUTION]
 > Thread IDs are currently stored in a format like `__LOCALID_3yHFd1l`, and message IDs are stored in a format like `f0GjiXG`.
